@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import pool from './db';
+import { runAll } from './scrapers/run_all';
 
 dotenv.config();
 
@@ -18,6 +19,20 @@ app.get('/health', (req, res) => {
 
 app.get('/', (req, res) => {
   res.json({ status: 'active', service: 'BidWatch API' });
+});
+
+// Trigger a manual scrape
+app.post('/api/scrape', async (req, res) => {
+  console.log('Manual scrape triggered via API');
+  try {
+    // Run in background so we can respond immediately or wait?
+    // The user wants to see it syncing, so we'll wait for it to finish for now, 
+    // or return a "started" status. For small batches, waiting is fine.
+    const result = await runAll();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Scraping failed', message: err.message });
+  }
 });
 
 // Get all bids

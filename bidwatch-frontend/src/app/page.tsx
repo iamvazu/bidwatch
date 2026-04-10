@@ -41,24 +41,41 @@ const StatCard = ({ label, value, icon: Icon, delta, color }: any) => (
 export default function Dashboard() {
   const [bids, setBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [selectedBid, setSelectedBid] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [analysis, setAnalysis] = useState<any>(null);
 
+  const fetchBids = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/bids`);
+      const data = await res.json();
+      setBids(data);
+    } catch (err) {
+      console.error('Failed to fetch bids:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBids = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/bids`);
-        const data = await res.json();
-        setBids(data);
-      } catch (err) {
-        console.error('Failed to fetch bids:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchBids();
   }, []);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/scrape`, { method: 'POST' });
+      const result = await res.json();
+      if (result.success) {
+        await fetchBids();
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedBid) {
@@ -100,6 +117,15 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-4">
+          <button 
+            onClick={handleSync}
+            disabled={syncing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${syncing ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed' : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]'}`}
+          >
+            <RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Syncing...' : 'Run Scan'}
+          </button>
+          
           <div className="flex items-center gap-2 px-4 py-2 rounded-full glass text-xs font-medium text-neutral-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Active Scrapers: 28/28

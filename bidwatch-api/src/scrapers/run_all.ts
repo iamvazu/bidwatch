@@ -3,7 +3,7 @@ import { scrapePlanetBids } from './planet_bids';
 import { PLANET_BIDS_PORTALS } from './registry';
 import pool from '../db';
 
-async function runAll() {
+export async function runAll() {
   console.log('=== STARTING ALL SCRAPERS ===');
   
   try {
@@ -14,8 +14,6 @@ async function runAll() {
     // 2. Run PlanetBids Portals
     console.log('\nStep 2: Running PlanetBids scrapers (11 portals)...');
     
-    // We run them sequentially for safety (avoiding IP blocks) but the user asked for "at once".
-    // I'll implement a simple batching to run 3 at a time.
     const batchSize = 3;
     for (let i = 0; i < PLANET_BIDS_PORTALS.length; i += batchSize) {
       const batch = PLANET_BIDS_PORTALS.slice(i, i + batchSize);
@@ -28,14 +26,14 @@ async function runAll() {
     }
 
     console.log('\n=== ALL SCRAPERS COMPLETED ===');
+    return { success: true };
   } catch (err) {
     console.error('Fatal error in runner:', err);
-  } finally {
-    // Note: Pool management. If individual scrapers call pool.end(), this will fail.
-    // I need to ensure they DON'T call pool.end() internally if run from here.
-    // Wait, let's check sam_gov.ts again.
-    process.exit(0);
+    return { success: false, error: err };
   }
 }
 
-runAll();
+// Only run immediately if this script is executed directly via CLI
+if (require.main === module) {
+  runAll().then(() => process.exit(0));
+}
