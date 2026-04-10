@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   BarChart3, 
@@ -18,14 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Mock data as per PRD/Reference
-const MOCK_BIDS = [
-  { id: '1', title: 'Janitorial Services — Main Admin Building', agency: 'City of San Diego', region: 'San Diego', estValue: '$72,000/yr', daysLeft: 12, score: 88, isNew: true, setAside: 'SB' },
-  { id: '2', title: 'Custodial Services — Multiple Library Branches', agency: 'County of San Diego', region: 'San Diego', estValue: '$140,000/yr', daysLeft: 4, score: 74, isNew: false, setAside: 'Open' },
-  { id: '3', title: 'Office Cleaning & Restroom maintenance', agency: 'LA County Dept. of Public Works', region: 'Los Angeles', estValue: '$210,000', daysLeft: 21, score: 65, isNew: false, setAside: 'SB/DVBE' },
-  { id: '4', title: 'Janitorial Services — Transit Operations', agency: 'Sacramento Regional Transit', region: 'Sacramento', estValue: '$95,000/yr', daysLeft: 8, score: 70, isNew: true, setAside: 'DVBE' },
-  { id: '5', title: 'Custodial & Porter Services', agency: 'San Diego Unified School District', region: 'San Diego', estValue: '$55,000/yr', daysLeft: 31, score: 91, isNew: true, setAside: 'SB' },
-];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const StatCard = ({ label, value, icon: Icon, delta, color }: any) => (
   <div className="glass p-5 rounded-2xl relative overflow-hidden group">
@@ -46,8 +39,52 @@ const StatCard = ({ label, value, icon: Icon, delta, color }: any) => (
 );
 
 export default function Dashboard() {
+  const [bids, setBids] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedBid, setSelectedBid] = useState<any>(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [analysis, setAnalysis] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchBids = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/bids`);
+        const data = await res.json();
+        setBids(data);
+      } catch (err) {
+        console.error('Failed to fetch bids:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBids();
+  }, []);
+
+  useEffect(() => {
+    if (selectedBid) {
+      const fetchAnalysis = async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/bids/${selectedBid.id}/analysis`);
+          const data = await res.json();
+          setAnalysis(data);
+        } catch (err) {
+          console.error('Failed to fetch analysis:', err);
+        }
+      };
+      fetchAnalysis();
+    } else {
+      setAnalysis(null);
+    }
+  }, [selectedBid]);
+
+  const filteredBids = bids.filter(bid => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'new') {
+      const isNew = bid.created_at && (new Date().getTime() - new Date(bid.created_at).getTime() < 86400000);
+      return isNew;
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-[#0d0f0e] text-neutral-100 p-6 lg:p-10 font-sans selection:bg-emerald-500/30">
@@ -77,10 +114,10 @@ export default function Dashboard() {
       </header>
 
       <div className="stats-grid mb-10">
-        <StatCard label="Active Bids" value="128" icon={Activity} delta="+12%" color="emerald" />
-        <StatCard label="New Today" value="14" icon={Zap} delta="+4" color="amber" />
-        <StatCard label="Closing Soon" value="8" icon={BarChart3} delta="Critical" color="rose" />
-        <StatCard label="Win Probability" value="72%" icon={ShieldCheck} color="blue" />
+        <StatCard label="Active Bids" value={bids.length.toString()} icon={Activity} delta="+12%" color="emerald" />
+        <StatCard label="New Today" value={bids.filter(b => b.created_at && (new Date().getTime() - new Date(b.created_at).getTime() < 86400000)).length.toString()} icon={Zap} delta="+4" color="amber" />
+        <StatCard label="Database Status" value="Online" icon={ShieldCheck} color="blue" />
+        <StatCard label="Region" value="California" icon={MapPin} color="emerald" />
       </div>
 
       <main className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
@@ -89,7 +126,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold">Opportunities</h2>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400">1,248 found</span>
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400">{filteredBids.length} found</span>
             </div>
             <div className="flex items-center gap-2 bg-neutral-900/50 p-1 rounded-xl border border-white/5">
               {['all', 'new', 'closing', 'saved'].map((f) => (
@@ -104,45 +141,56 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {MOCK_BIDS.map((bid) => (
-              <motion.div 
-                key={bid.id}
-                layoutId={bid.id}
-                onClick={() => setSelectedBid(bid)}
-                className={`p-5 rounded-2xl glass transition-all cursor-pointer group ${selectedBid?.id === bid.id ? 'ring-2 ring-emerald-500/50 bg-emerald-500/[0.03]' : 'hover:bg-white/[0.02]'}`}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">{bid.agency}</p>
-                    <h3 className="text-[15px] font-semibold tracking-tight leading-tight group-hover:text-emerald-400 transition-colors uppercase">{bid.title}</h3>
+          {loading ? (
+            <div className="py-20 text-center text-neutral-500 text-sm animate-pulse">Loading opportunities...</div>
+          ) : (
+            <div className="space-y-3">
+              {filteredBids.map((bid) => (
+                <motion.div 
+                  key={bid.id}
+                  layoutId={bid.id}
+                  onClick={() => setSelectedBid(bid)}
+                  className={`p-5 rounded-2xl glass transition-all cursor-pointer group ${selectedBid?.id === bid.id ? 'ring-2 ring-emerald-500/50 bg-emerald-500/[0.03]' : 'hover:bg-white/[0.02]'}`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">{bid.agency}</p>
+                      <h3 className="text-[15px] font-semibold tracking-tight leading-tight group-hover:text-emerald-400 transition-colors uppercase">{bid.title}</h3>
+                    </div>
                   </div>
-                  <div className={`w-12 h-12 rounded-full border flex items-center justify-center font-bold text-xs ${bid.score >= 80 ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' : bid.score >= 70 ? 'border-amber-500/30 text-amber-400' : 'border-neutral-500/30 text-neutral-400'}`}>
-                    {bid.score}
-                  </div>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                    <MapPin size={14} className="text-neutral-600" />
-                    {bid.region}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                      <MapPin size={14} className="text-neutral-600" />
+                      {bid.region}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                      <BarChart3 size={14} className="text-neutral-600" />
+                      {bid.est_value || 'N/A'}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                      <Activity size={14} className="text-neutral-600" />
+                      Portal: {bid.portal}
+                    </div>
+                    {bid.deadline && (
+                      <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                        <Zap size={14} className="text-neutral-600" />
+                        Due: {new Date(bid.deadline).toLocaleDateString()}
+                      </div>
+                    )}
+                    <div className="ml-auto flex gap-2">
+                       {bid.created_at && (new Date().getTime() - new Date(bid.created_at).getTime() < 86400000) && <span className="text-[9px] font-black bg-emerald-500 text-black px-1.5 py-0.5 rounded leading-none">NEW</span>}
+                      <span className="text-[9px] font-black bg-white/5 text-neutral-400 px-1.5 py-0.5 rounded leading-none border border-white/5 font-mono">{bid.set_aside || 'OPEN'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                    <BarChart3 size={14} className="text-neutral-600" />
-                    {bid.estValue}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                    <BarChart3 size={14} className="text-neutral-600" />
-                    {bid.daysLeft} days left
-                  </div>
-                  <div className="ml-auto flex gap-2">
-                    {bid.isNew && <span className="text-[9px] font-black bg-emerald-500 text-black px-1.5 py-0.5 rounded leading-none">NEW</span>}
-                    <span className="text-[9px] font-black bg-white/5 text-neutral-400 px-1.5 py-0.5 rounded leading-none border border-white/5">{bid.setAside}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+              
+              {filteredBids.length === 0 && (
+                <div className="py-20 text-center text-neutral-600 text-sm">No opportunities found. Run a scan to sync data.</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right: AI Panel */}
@@ -167,33 +215,42 @@ export default function Dashboard() {
                     className="space-y-6"
                   >
                     <div>
-                      <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                        <BarChart3 size={16} className="text-emerald-500" />
-                        Go/No-Go Analysis
-                      </h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                          <BarChart3 size={16} className="text-emerald-500" />
+                          Go/No-Go Analysis
+                        </h4>
+                        {analysis && (
+                          <div className={`text-xs font-bold px-2 py-0.5 rounded ${analysis.score >= 70 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-neutral-500/10 text-neutral-400'}`}>
+                            Score: {analysis.score}
+                          </div>
+                        )}
+                      </div>
                       <p className="text-sm text-neutral-400 leading-relaxed font-mono">
-                         This is a high-fit opportunity for your business. The scope matches your recent performance with San Diego Unified School District. Competition is expected to be medium.
+                         {analysis ? analysis.analysis : 'Analyzing bid data...'}
                       </p>
                     </div>
 
                     <div className="space-y-4">
                       <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
-                        <p className="text-[10px] uppercase font-bold text-neutral-600 mb-2">Pricing Strategy</p>
-                        <p className="text-xs text-neutral-400">Target a 12-15% margin. Account for local prevailing wage increases starting July 1.</p>
+                        <p className="text-[10px] uppercase font-bold text-neutral-600 mb-2">Agency Insight</p>
+                        <p className="text-xs text-neutral-400">{selectedBid.agency}</p>
                       </div>
                       <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
-                        <p className="text-[10px] uppercase font-bold text-neutral-600 mb-2">Key Requirements</p>
-                        <ul className="text-xs text-neutral-400 space-y-1.5">
-                          <li className="flex gap-2"><span>—</span> Green-certified cleaning products mandatory</li>
-                          <li className="flex gap-2"><span>—</span> 24/7 emergency response clause included</li>
-                        </ul>
+                        <p className="text-[10px] uppercase font-bold text-neutral-600 mb-2">Portal Source</p>
+                        <p className="text-xs text-neutral-400">{selectedBid.portal} (NAICS: {selectedBid.naics || 'N/A'})</p>
                       </div>
                     </div>
 
-                    <button className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] active:scale-95 flex items-center justify-center gap-2">
+                    <a 
+                      href={selectedBid.portal_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] active:scale-95 flex items-center justify-center gap-2 text-sm"
+                    >
                       <FileText size={18} />
-                      Generate Proposal Draft
-                    </button>
+                      View Original Solicitation
+                    </a>
                   </motion.div>
                 ) : (
                   <div className="text-center py-10 space-y-4">
@@ -216,9 +273,8 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold text-neutral-600">Global Scanner</p>
-              <p className="text-xs text-neutral-300">Next update in 2h 14m</p>
+              <p className="text-xs text-neutral-300">Synchronization Active</p>
             </div>
-            <button className="ml-auto text-xs font-semibold text-emerald-500 hover:text-emerald-400">Scan Now</button>
           </div>
         </aside>
       </main>
