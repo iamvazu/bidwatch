@@ -1,7 +1,7 @@
 import axios from 'axios';
 import crypto from 'crypto';
-import pool from '../db';
-import { Bid } from '../types';
+import pool from '../db/index.js';
+import { Bid } from '../types/index.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -63,6 +63,9 @@ export async function scrapeSamGov() {
   }
 }
 
-if (require.main === module) {
+import { fileURLToPath } from 'url';
+const isMain = process.argv[1] && (process.argv[1] === fileURLToPath(import.meta.url) || process.argv[1].endsWith('sam_gov.ts'));
+
+if (isMain) {
   scrapeSamGov().finally(() => pool.end());
 }

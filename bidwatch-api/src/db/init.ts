@@ -1,4 +1,4 @@
-import pool from './index';
+import pool from './index.js';
 
 async function initDb() {
   console.log('Initializing database...');

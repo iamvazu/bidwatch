@@ -1,4 +1,4 @@
-import { scrapePlanetBids } from './scrapers/planet_bids';
+import { scrapePlanetBids } from './scrapers/planet_bids.js';
 
 async function test() {
   console.log('--- TEST RUN: PlanetBids Scraper ---');

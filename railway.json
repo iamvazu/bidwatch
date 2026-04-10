@@ -7,8 +7,9 @@
     ]
   },
   "deploy": {
-    "startCommand": "cd bidwatch-api && npm install && npm run build && npm run start",
+    "startCommand": "cd bidwatch-api && node dist/server.js",
     "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE"
   }
 }

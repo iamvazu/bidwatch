@@ -1,9 +1,10 @@
 import { chromium } from 'playwright-extra';
-const stealth = require('puppeteer-extra-plugin-stealth')();
+import stealthPlugin from 'puppeteer-extra-plugin-stealth';
+const stealth = stealthPlugin();
 import crypto from 'crypto';
-import pool from '../db';
-import { PdfService } from '../services/pdf_service';
-import { CaptchaService } from '../services/captcha_service';
+import pool from '../db/index.js';
+import { PdfService } from '../services/pdf_service.js';
+import { CaptchaService } from '../services/captcha_service.js';
 
 // Use stealth plugin
 chromium.use(stealth);

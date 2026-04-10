@@ -1,7 +1,7 @@
-import { scrapeSamGov } from './sam_gov';
-import { scrapePlanetBids } from './planet_bids';
-import { PLANET_BIDS_PORTALS } from './registry';
-import pool from '../db';
+import { scrapeSamGov } from './sam_gov.js';
+import { scrapePlanetBids } from './planet_bids.js';
+import { PLANET_BIDS_PORTALS } from './registry.js';
+import pool from '../db/index.js';
 
 export async function runAll() {
   console.log('=== STARTING ALL SCRAPERS ===');
@@ -33,7 +33,10 @@ export async function runAll() {
   }
 }
 
-// Only run immediately if this script is executed directly via CLI
-if (require.main === module) {
+// Support both ESM and CJS for local testing
+import { fileURLToPath } from 'url';
+const isMain = process.argv[1] && (process.argv[1] === fileURLToPath(import.meta.url) || process.argv[1].endsWith('run_all.ts'));
+
+if (isMain) {
   runAll().then(() => process.exit(0));
 }

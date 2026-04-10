@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
 export class PdfService {

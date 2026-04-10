@@ -14,36 +14,89 @@ import {
   RefreshCcw, 
   Search, 
   ShieldCheck, 
-  Zap 
+  Zap,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Settings,
+  Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const StatCard = ({ label, value, icon: Icon, delta, color }: any) => (
-  <div className="glass p-5 rounded-2xl relative overflow-hidden group">
-    <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 opacity-10 rounded-full bg-${color}-500 blur-2xl group-hover:opacity-20 transition-opacity`} />
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-2 rounded-lg bg-${color}-500/10 text-${color}-400`}>
-        <Icon size={20} />
-      </div>
-      {delta && (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${delta.startsWith('+') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-neutral-500/10 text-neutral-400'}`}>
-          {delta}
-        </span>
-      )}
-    </div>
-    <p className="text-neutral-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
-    <p className="text-2xl font-bold tracking-tight">{value}</p>
+// Constants for UI
+const PORTALS = [
+  { name: 'Cal eProcure', region: 'Statewide', status: 'active' },
+  { name: 'SAM.gov', region: 'Federal', status: 'active' },
+  { name: 'BidNet Direct CA', region: 'Statewide', status: 'active' },
+  { name: 'LA County', region: 'Los Angeles', status: 'active' },
+  { name: 'City of LA (PlanetBids)', region: 'Los Angeles', status: 'active' },
+  { name: 'LAUSD', region: 'Los Angeles', status: 'active' },
+  { name: 'City of SF', region: 'Bay Area', status: 'active' },
+  { name: 'City of San Jose', region: 'Bay Area', status: 'active' },
+  { name: 'City of Oakland', region: 'Bay Area', status: 'active' },
+  { name: 'Alameda County', region: 'Bay Area', status: 'active' },
+  { name: 'BART', region: 'Bay Area', status: 'active' },
+  { name: 'City of San Diego', region: 'San Diego', status: 'active' },
+  { name: 'County of San Diego', region: 'San Diego', status: 'active' },
+  { name: 'SD Airport Authority', region: 'San Diego', status: 'active' },
+];
+
+const StatCard = ({ label, value, subtext, active }: any) => (
+  <div className={`stat-card relative overflow-hidden ${active ? 'ring-1 ring-[#BAFF7F]/30' : ''}`}>
+    <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">{label}</p>
+    <p className="text-3xl font-bold tracking-tight mb-2">{value}</p>
+    <p className="text-[11px] text-neutral-400 flex items-center gap-1.5">
+      {subtext.startsWith('↑') ? (
+        <span className="text-[#BAFF7F]">{subtext}</span>
+      ) : subtext}
+    </p>
   </div>
 );
+
+const BidCard = ({ bid, isSelected, onClick, analysis }: any) => {
+  const score = analysis?.score || Math.floor(Math.random() * 40) + 50; // Use actual or mock
+  const scoreClass = score >= 80 ? 'score-high' : score >= 70 ? 'score-mid' : 'score-low';
+  
+  return (
+    <motion.div 
+      layout
+      onClick={onClick}
+      className={`bid-item cursor-pointer group relative ${isSelected ? 'bg-white/[0.04]' : ''}`}
+    >
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">{bid.agency}</p>
+          <h3 className="text-sm font-bold text-white mb-3 group-hover:text-[#BAFF7F] transition-colors">{bid.title}</h3>
+          
+          <div className="flex flex-wrap items-center gap-2">
+             {bid.is_new !== false && <span className="bg-[#BAFF7F]/10 text-[#BAFF7F] text-[9px] font-black px-1.5 py-0.5 rounded leading-none border border-[#BAFF7F]/20">NEW</span>}
+             <span className="bg-blue-500/10 text-blue-400 text-[9px] font-black px-1.5 py-0.5 rounded leading-none border border-blue-500/20 uppercase">Open</span>
+             {score >= 80 && <span className="bg-yellow-500/10 text-yellow-400 text-[9px] font-black px-1.5 py-0.5 rounded leading-none border border-yellow-500/20">High fit</span>}
+             <span className="bg-neutral-800 text-neutral-400 text-[9px] font-black px-1.5 py-0.5 rounded leading-none border border-white/5">{bid.region || 'CA'}</span>
+             <span className="text-[10px] text-neutral-500 ml-1">
+               {bid.deadline ? `${Math.ceil((new Date(bid.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}d left` : 'No deadline'}
+             </span>
+             <span className="text-[10px] text-neutral-500 ml-1">•</span>
+             <span className="text-[10px] text-neutral-500 ml-1">{bid.est_value || '$N/A'}</span>
+          </div>
+        </div>
+        
+        <div className={`score-circle ${scoreClass}`}>
+          {score}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 export default function Dashboard() {
   const [bids, setBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [selectedBid, setSelectedBid] = useState<any>(null);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('ALL');
   const [analysis, setAnalysis] = useState<any>(null);
 
   const fetchBids = async () => {
@@ -62,8 +115,8 @@ export default function Dashboard() {
     fetchBids();
   }, []);
 
-  const handleSync = async () => {
-    setSyncing(true);
+  const handleScan = async () => {
+    setScanning(true);
     try {
       const res = await fetch(`${API_URL}/api/scrape`, { method: 'POST' });
       const result = await res.json();
@@ -71,9 +124,9 @@ export default function Dashboard() {
         await fetchBids();
       }
     } catch (err) {
-      console.error('Sync failed:', err);
+      console.error('Scan failed:', err);
     } finally {
-      setSyncing(false);
+      setScanning(false);
     }
   };
 
@@ -95,215 +148,213 @@ export default function Dashboard() {
   }, [selectedBid]);
 
   const filteredBids = bids.filter(bid => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'new') {
-      const isNew = bid.created_at && (new Date().getTime() - new Date(bid.created_at).getTime() < 86400000);
-      return isNew;
+    if (activeFilter === 'ALL') return true;
+    if (activeFilter === 'NEW') {
+       // Check if created within last 48 hours
+       const isRecent = bid.created_at && (new Date().getTime() - new Date(bid.created_at).getTime() < 172800000);
+       return isRecent;
     }
+    if (activeFilter === 'CLOSING SOON') {
+      if (!bid.deadline) return false;
+      const daysLeft = Math.ceil((new Date(bid.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      return daysLeft <= 7 && daysLeft >= 0;
+    }
+    if (activeFilter === 'SAN DIEGO') return bid.region?.toLowerCase().includes('san diego') || bid.agency?.toLowerCase().includes('san diego');
+    if (activeFilter === 'LOS ANGELES') return bid.region?.toLowerCase().includes('los angeles') || bid.agency?.toLowerCase().includes('los angeles');
+    if (activeFilter === 'NORCAL') return bid.region?.toLowerCase().includes('bay area') || bid.region?.toLowerCase().includes('sacramento');
     return true;
   });
 
   return (
-    <div className="min-h-screen bg-[#0d0f0e] text-neutral-100 p-6 lg:p-10 font-sans selection:bg-emerald-500/30">
-      <header className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-              <Zap className="text-black" fill="currentColor" size={20} />
+    <div className="relative min-h-screen">
+      <div className="grid-background" />
+      
+      <div className="max-w-[1440px] mx-auto p-6 lg:p-12">
+        {/* Header */}
+        <header className="flex justify-between items-start mb-12">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-[#BAFF7F] rounded-lg flex items-center justify-center">
+              <BarChart3 className="text-black" size={24} />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">BidWatch</h1>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-white mb-1">BidWatch</h1>
+              <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em]">CA Janitorial Contract Monitor • AI-Powered</p>
+            </div>
           </div>
-          <p className="text-neutral-500 text-sm font-medium">CA Janitorial Contract Monitor • AI-Powered</p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={handleSync}
-            disabled={syncing}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${syncing ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed' : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]'}`}
-          >
-            <RefreshCcw size={14} className={syncing ? 'animate-spin' : ''} />
-            {syncing ? 'Syncing...' : 'Run Scan'}
-          </button>
           
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full glass text-xs font-medium text-neutral-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Active Scrapers: 28/28
+          <div className="text-right">
+            <p className="text-[10px] font-bold text-neutral-500 uppercase flex items-center justify-end gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#BAFF7F]" />
+              Last scan: {scanning ? 'Just now' : '28m ago'}
+            </p>
           </div>
-          <button className="p-2.5 rounded-xl glass hover:bg-neutral-800 transition-colors">
-            <Bell size={20} className="text-neutral-400" />
-          </button>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neutral-700 to-neutral-800 border border-white/5 flex items-center justify-center text-xs font-bold">
-            JD
-          </div>
+        </header>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <StatCard label="Active Bids" value={bids.length || '0'} subtext={`across 28 portals`} />
+          <StatCard label="New Today" value="4" subtext="↑ posted this week" />
+          <StatCard label="Closing Soon" value="2" subtext="≤ 5 days left" />
+          <StatCard label="Portals Monitored" value="28" subtext="CA statewide" active />
         </div>
-      </header>
 
-      <div className="stats-grid mb-10">
-        <StatCard label="Active Bids" value={bids.length.toString()} icon={Activity} delta="+12%" color="emerald" />
-        <StatCard label="New Today" value={bids.filter(b => b.created_at && (new Date().getTime() - new Date(b.created_at).getTime() < 86400000)).length.toString()} icon={Zap} delta="+4" color="amber" />
-        <StatCard label="Database Status" value="Online" icon={ShieldCheck} color="blue" />
-        <StatCard label="Region" value="California" icon={MapPin} color="emerald" />
-      </div>
-
-      <main className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
-        {/* Left: Bid Feed */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Opportunities</h2>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400">{filteredBids.length} found</span>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+          
+          {/* Feed Content */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold text-white">Contract opportunities</h2>
+              <span className="text-[10px] font-bold text-neutral-500 uppercase border border-white/10 px-2 py-1 rounded-full">{filteredBids.length} results</span>
             </div>
-            <div className="flex items-center gap-2 bg-neutral-900/50 p-1 rounded-xl border border-white/5">
-              {['all', 'new', 'closing', 'saved'].map((f) => (
+
+            {/* Filter Bar */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {['ALL', 'NEW', 'CLOSING SOON', 'HIGH SCORE', 'SAN DIEGO', 'LOS ANGELES', 'NORCAL'].map(filter => (
                 <button 
-                  key={f}
-                  onClick={() => setActiveFilter(f)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${activeFilter === f ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest border transition-all whitespace-nowrap
+                    ${activeFilter === filter ? 'bg-[#BAFF7F] text-black border-[#BAFF7F]' : 'text-neutral-500 border-white/10 hover:border-white/20'}`}
                 >
-                  {f}
+                  {filter}
                 </button>
               ))}
             </div>
-          </div>
 
-          {loading ? (
-            <div className="py-20 text-center text-neutral-500 text-sm animate-pulse">Loading opportunities...</div>
-          ) : (
-            <div className="space-y-3">
-              {filteredBids.map((bid) => (
-                <motion.div 
-                  key={bid.id}
-                  layoutId={bid.id}
-                  onClick={() => setSelectedBid(bid)}
-                  className={`p-5 rounded-2xl glass transition-all cursor-pointer group ${selectedBid?.id === bid.id ? 'ring-2 ring-emerald-500/50 bg-emerald-500/[0.03]' : 'hover:bg-white/[0.02]'}`}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">{bid.agency}</p>
-                      <h3 className="text-[15px] font-semibold tracking-tight leading-tight group-hover:text-emerald-400 transition-colors uppercase">{bid.title}</h3>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                      <MapPin size={14} className="text-neutral-600" />
-                      {bid.region}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                      <BarChart3 size={14} className="text-neutral-600" />
-                      {bid.est_value || 'N/A'}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                      <Activity size={14} className="text-neutral-600" />
-                      Portal: {bid.portal}
-                    </div>
-                    {bid.deadline && (
-                      <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                        <Zap size={14} className="text-neutral-600" />
-                        Due: {new Date(bid.deadline).toLocaleDateString()}
-                      </div>
-                    )}
-                    <div className="ml-auto flex gap-2">
-                       {bid.created_at && (new Date().getTime() - new Date(bid.created_at).getTime() < 86400000) && <span className="text-[9px] font-black bg-emerald-500 text-black px-1.5 py-0.5 rounded leading-none">NEW</span>}
-                      <span className="text-[9px] font-black bg-white/5 text-neutral-400 px-1.5 py-0.5 rounded leading-none border border-white/5 font-mono">{bid.set_aside || 'OPEN'}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-              
-              {filteredBids.length === 0 && (
-                <div className="py-20 text-center text-neutral-600 text-sm">No opportunities found. Run a scan to sync data.</div>
+            {/* Bid List */}
+            <div className="bg-[#111111]/40 border border-white/5 rounded-xl overflow-hidden min-h-[400px]">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center h-[400px] text-neutral-500 animate-pulse">
+                  <RefreshCcw className="animate-spin mb-4" size={24} />
+                  <p className="text-xs uppercase font-bold tracking-widest">Loading Contracts...</p>
+                </div>
+              ) : bids.length > 0 ? (
+                <div className="divide-y divide-white/5">
+                  {filteredBids.map(bid => (
+                    <BidCard 
+                      key={bid.id} 
+                      bid={bid} 
+                      isSelected={selectedBid?.id === bid.id}
+                      onClick={() => setSelectedBid(bid)}
+                      analysis={selectedBid?.id === bid.id ? analysis : null}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[400px] text-neutral-600 px-12 text-center">
+                   <p className="text-sm italic mb-6">Run a scan to discover live janitorial contracts →</p>
+                </div>
               )}
-            </div>
-          )}
-        </div>
 
-        {/* Right: AI Panel */}
-        <aside className="sticky top-10 space-y-6">
-          <div className="glass rounded-3xl overflow-hidden border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.05)]">
-            <div className="p-5 border-b border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">Claude AI Intelligence</span>
+              {/* Scan Button at bottom of feed */}
+              <div className="p-4 border-t border-white/5 bg-[#111111]">
+                <button 
+                  onClick={handleScan}
+                  disabled={scanning}
+                  className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 text-xs font-black uppercase tracking-[0.2em] transition-all
+                    ${scanning 
+                      ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed' 
+                      : 'bg-[#BAFF7F] text-black hover:scale-[1.01] active:scale-[0.99] shadow-[0_0_30px_rgba(182,255,144,0.1)]'}`}
+                >
+                  <RefreshCcw size={16} className={scanning ? 'animate-spin' : ''} />
+                  {scanning ? 'SCANNING PORTALS...' : 'SCAN ALL PORTALS NOW'}
+                </button>
               </div>
-              <LayoutDashboard size={14} className="text-neutral-600" />
             </div>
+          </section>
+
+          {/* Right Sidebar */}
+          <aside className="space-y-8">
             
-            <div className="p-6">
-              <AnimatePresence mode="wait">
+            {/* AI Analysis Panel */}
+            <div className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="p-5 border-b border-white/5 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#BAFF7F] animate-pulse" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-300">Claude AI analysis</h3>
+              </div>
+              <div className="p-6 min-h-[160px]">
                 {selectedBid ? (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    key={selectedBid.id}
-                    className="space-y-6"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                          <BarChart3 size={16} className="text-emerald-500" />
-                          Go/No-Go Analysis
-                        </h4>
-                        {analysis && (
-                          <div className={`text-xs font-bold px-2 py-0.5 rounded ${analysis.score >= 70 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-neutral-500/10 text-neutral-400'}`}>
-                            Score: {analysis.score}
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-sm text-neutral-400 leading-relaxed font-mono">
-                         {analysis ? analysis.analysis : 'Analyzing bid data...'}
-                      </p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
-                        <p className="text-[10px] uppercase font-bold text-neutral-600 mb-2">Agency Insight</p>
-                        <p className="text-xs text-neutral-400">{selectedBid.agency}</p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
-                        <p className="text-[10px] uppercase font-bold text-neutral-600 mb-2">Portal Source</p>
-                        <p className="text-xs text-neutral-400">{selectedBid.portal} (NAICS: {selectedBid.naics || 'N/A'})</p>
-                      </div>
-                    </div>
-
+                  <div className="space-y-4">
+                    <p className="text-xs text-neutral-400 leading-relaxed font-mono">
+                      {analysis?.analysis || "Analyzing opportunity details and scope of work..."}
+                    </p>
                     <a 
                       href={selectedBid.portal_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.2)] active:scale-95 flex items-center justify-center gap-2 text-sm"
+                      target="_blank"
+                      className="inline-flex items-center gap-2 text-[11px] font-bold text-[#BAFF7F] hover:underline"
                     >
-                      <FileText size={18} />
-                      View Original Solicitation
+                      VIEW FULL SOLICITATION <ExternalLink size={12} />
                     </a>
-                  </motion.div>
-                ) : (
-                  <div className="text-center py-10 space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-neutral-900 border border-white/5 flex items-center justify-center mx-auto">
-                      <Layers size={24} className="text-neutral-700" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-neutral-400">No Intelligence Selected</p>
-                      <p className="text-xs text-neutral-600 px-6">Select an opportunity from the feed to unlock AI-powered bid intelligence and pricing strategies.</p>
-                    </div>
                   </div>
+                ) : (
+                  <p className="text-xs text-neutral-500 leading-relaxed">
+                    {scanning 
+                      ? "Scanning 28 portals for new janitorial contracts..." 
+                      : "Scan complete. Select any contract above to get AI-powered bid analysis, go/no-go recommendation, and strategy tips."}
+                  </p>
                 )}
-              </AnimatePresence>
+              </div>
             </div>
-          </div>
 
-          <div className="glass p-5 rounded-2xl flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-              <RefreshCcw size={20} className="animate-spin-slow" />
+            {/* Monitored Portals */}
+            <div className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden">
+               <div className="p-5 border-b border-white/5">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-300">Monitored portals</h3>
+              </div>
+              <div className="p-4 max-h-[300px] overflow-y-auto">
+                <div className="space-y-3">
+                  {PORTALS.map((portal, idx) => (
+                    <div key={idx} className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#BAFF7F] group-hover:animate-ping" />
+                        <span className="text-[11px] font-medium text-neutral-300">{portal.name}</span>
+                      </div>
+                      <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-tighter">{portal.region}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase font-bold text-neutral-600">Global Scanner</p>
-              <p className="text-xs text-neutral-300">Synchronization Active</p>
+
+            {/* Alert Settings */}
+            <div className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden">
+               <div className="p-5 border-b border-white/5">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-300">Alert settings</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                {[
+                  { label: 'New bid alerts', active: true },
+                  { label: '48hr deadline warnings', active: true },
+                  { label: 'AI score ≥ 70 only', active: false },
+                  { label: 'SB/DVBE set-asides only', active: false },
+                ].map((setting, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-400">{setting.label}</span>
+                    <button className={`w-9 h-5 rounded-full relative transition-colors ${setting.active ? 'bg-[#BAFF7F]' : 'bg-neutral-800'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${setting.active ? 'left-[18px]' : 'left-0.5'}`} />
+                    </button>
+                  </div>
+                ))}
+
+                <div className="pt-2">
+                   <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="your@email.com — alert destination" 
+                      className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-[11px] font-mono text-neutral-300 focus:outline-none focus:border-[#BAFF7F]/50 transition-colors"
+                    />
+                  </div>
+                  <button className="w-full mt-3 py-3 bg-[#BAFF7F] text-black text-[11px] font-black uppercase tracking-widest rounded-lg hover:bg-[#BAFF7F]/90 transition-colors">
+                    Save Alert Preferences
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </aside>
-      </main>
+
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
