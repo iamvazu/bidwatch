@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 app.post('/api/scrape', async (req, res) => {
   console.log('Manual scrape triggered via API');
   try {
-    const { runAll } = await import('./scrapers/run_all');
+    const { runAll } = await import('./scrapers/run_all.js');
     const result = await runAll();
     res.json(result);
   } catch (err: any) {
