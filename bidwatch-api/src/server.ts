@@ -57,6 +57,6 @@ app.get('/api/bids/:id/analysis', async (req, res) => {
   }
 });
 
-app.listen(port, '0.0.0.0' as any, () => {
+app.listen(Number(port), '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);
 });
