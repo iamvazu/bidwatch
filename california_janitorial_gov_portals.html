@@ -1,0 +1,144 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.wrap { padding: 1rem 0; }
+.section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary); margin: 1.5rem 0 0.6rem; }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 8px; }
+.card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: var(--border-radius-md); }
+.badge-state { background: #EEEDFE; color: #3C3489; }
+.badge-fed { background: #E6F1FB; color: #0C447C; }
+.badge-county { background: #E1F5EE; color: #085041; }
+.badge-city { background: #FAECE7; color: #712B13; }
+.badge-transit { background: #FAEEDA; color: #633806; }
+.badge-school { background: #FBEAF0; color: #72243E; }
+.badge-agg { background: #EAF3DE; color: #27500A; }
+.card-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.card-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.card-link { font-size: 12px; color: var(--color-text-info); margin-top: 6px; display: block; word-break: break-all; }
+.naics-pill { display: inline-block; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; font-size: 11px; color: var(--color-text-secondary); padding: 2px 10px; margin-top: 6px; }
+.tip { font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-secondary); border-left: 2px solid #7F77DD; border-radius: 0; padding: 8px 12px; margin-top: 1rem; }
+.region-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.region-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 14px; }
+.region-card h4 { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+.region-card a { display: block; font-size: 12px; color: var(--color-text-info); margin-bottom: 3px; }
+.region-card .rname { font-size: 11px; color: var(--color-text-tertiary); }
+.search-bar { display: flex; gap: 8px; margin-bottom: 1rem; }
+.search-bar input { flex: 1; font-size: 13px; padding: 6px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); }
+.search-bar select { font-size: 13px; padding: 6px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); }
+.row { display: flex; gap: 10px; align-items: flex-start; }
+.row .badge { flex-shrink: 0; margin-top: 2px; }
+.portal-entry { padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.portal-entry:last-child { border-bottom: none; }
+.hidden { display: none; }
+</style>
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.2rem;">
+    <div style="font-size:18px;font-weight:500;color:var(--color-text-primary);">California janitorial gov bids</div>
+    <span class="naics-pill">NAICS 561720 &nbsp;|&nbsp; UNSPSC 76111501</span>
+  </div>
+  <div class="tip">Filter by keyword or region below. Click any link to open the portal directly. Register on each portal and set your service category to "Janitorial" or "Custodial Services."</div>
+
+  <div class="section-label">Search & filter</div>
+  <div class="search-bar">
+    <input type="text" id="kw" placeholder="Search by name or region..." oninput="filter()">
+    <select id="type" onchange="filter()">
+      <option value="">All types</option>
+      <option value="state">State</option>
+      <option value="fed">Federal</option>
+      <option value="county">County</option>
+      <option value="city">City</option>
+      <option value="transit">Transit / Airport</option>
+      <option value="school">School / College</option>
+      <option value="agg">Aggregator</option>
+    </select>
+  </div>
+
+  <div id="portal-list"></div>
+</div>
+
+<script>
+const portals = [
+  { name: "Cal eProcure (state-wide)", type: "state", region: "Statewide", desc: "Official CA state portal — search 'janitorial' in CSCR. Register + get SB/DVBE cert here.", url: "https://caleprocure.ca.gov/pages/public-search.aspx" },
+  { name: "SAM.gov", type: "fed", region: "Federal", desc: "All federal agency contracts. Search NAICS 561720 for janitorial/cleaning services.", url: "https://sam.gov/opportunities" },
+  { name: "BidNet Direct — California", type: "agg", region: "Statewide aggregator", desc: "Aggregates hundreds of CA city/county bids. Has 'Janitorial Services' category filter.", url: "https://www.bidnetdirect.com/california" },
+  { name: "FindRFP — Janitorial", type: "agg", region: "Statewide aggregator", desc: "Dedicated janitorial/cleaning/custodial contract search across CA government agencies.", url: "https://findrfp.com/janitorial-cleaning-custodial-contracts/bid.aspx" },
+  { name: "GovernmentBids.com", type: "agg", region: "Statewide aggregator", desc: "10,500+ janitorial proposals per year. Free daily email alerts for CA custodial bids.", url: "https://www.governmentbids.com" },
+
+  { name: "County of Los Angeles", type: "county", region: "Los Angeles", desc: "One of the largest janitorial contract buyers in the US. Uses its own procurement portal.", url: "https://lacounty.gov/business/doing-business-with-la-county/lac-purchasing-and-contract-opportunities/" },
+  { name: "City of Los Angeles (PlanetBids)", type: "city", region: "Los Angeles", desc: "LA City procurement. Register and select 'Janitorial/Custodial' as service category.", url: "https://vendors.planetbids.com/portal/15300/bo/bo-search" },
+  { name: "LAUSD (PlanetBids)", type: "school", region: "Los Angeles", desc: "LA Unified School District — large volume of janitorial and cleaning service contracts.", url: "https://pbsystem.planetbids.com/portal/40238/portal-home" },
+
+  { name: "City of San Francisco", type: "city", region: "San Francisco Bay Area", desc: "SF City Partner portal — city uses its own system, not PlanetBids.", url: "https://sfcitypartner.sfgov.org/" },
+  { name: "City of San Jose (PlanetBids)", type: "city", region: "San Francisco Bay Area", desc: "San Jose procurement portal for janitorial and facility services.", url: "https://pbsystem.planetbids.com/portal/29554/portal-home" },
+  { name: "City of Oakland (PlanetBids)", type: "city", region: "San Francisco Bay Area", desc: "Oakland city procurement — register under custodial/janitorial service codes.", url: "https://vendors.planetbids.com/portal/10038/bo/bo-search" },
+  { name: "Alameda County", type: "county", region: "San Francisco Bay Area", desc: "Alameda County procurement. Search 'janitorial' in their open solicitations.", url: "https://www.acgov.org/gsa/purchasing/bid_opps.htm" },
+  { name: "BART (PlanetBids)", type: "transit", region: "San Francisco Bay Area", desc: "Bay Area Rapid Transit — facility cleaning and janitorial service contracts.", url: "https://pbsystem.planetbids.com/portal/15924/portal-home" },
+
+  { name: "City of San Diego (PlanetBids)", type: "city", region: "San Diego", desc: "Your existing portal. Janitorial included under Goods & Services division.", url: "https://vendors.planetbids.com/portal/17950/portal-home" },
+  { name: "County of San Diego", type: "county", region: "San Diego", desc: "Your existing portal.", url: "https://sdbuynet.sandiegocounty.gov/page.aspx/en/rfp/request_browse_public" },
+  { name: "San Diego Airport Authority (PlanetBids)", type: "transit", region: "San Diego", desc: "Airport cleaning contracts. Your existing portal.", url: "https://vendors.planetbids.com/portal/16725/portal-home" },
+  { name: "San Diego Unified School District (PlanetBids)", type: "school", region: "San Diego", desc: "Your existing portal.", url: "https://vendors.planetbids.com/portal/43764/portal-home" },
+
+  { name: "City of Sacramento (PlanetBids)", type: "city", region: "Sacramento", desc: "Capital city procurement. Register and search janitorial service category.", url: "https://pbsystem.planetbids.com/portal/31812/portal-home" },
+  { name: "Sacramento County", type: "county", region: "Sacramento", desc: "County procurement portal for cleaning and custodial services.", url: "https://www.saccounty.gov/Government/General-Services/Pages/Purchasing-Bid-Information.aspx" },
+  { name: "Sacramento Regional Transit (PlanetBids)", type: "transit", region: "Sacramento", desc: "Transit authority facility maintenance including janitorial contracts.", url: "https://pbsystem.planetbids.com/portal/31424/portal-home" },
+
+  { name: "City of Fresno (PlanetBids)", type: "city", region: "Central Valley", desc: "Fresno city procurement. Up to 20 service categories — select janitorial.", url: "https://pbsystem.planetbids.com/portal/14769/portal-home" },
+  { name: "Fresno County", type: "county", region: "Central Valley", desc: "County procurement for cleaning/custodial services across county facilities.", url: "https://www.co.fresno.ca.us/departments/internal-services/purchasing" },
+  { name: "City of Bakersfield", type: "city", region: "Central Valley", desc: "City purchasing — search active solicitations for janitorial/custodial.", url: "https://www.bakersfieldcity.us/gov/depts/finance/purchasing/default.htm" },
+
+  { name: "Orange County (iProcurement)", type: "county", region: "Orange County / Inland Empire", desc: "Large county with frequent janitorial and facility cleaning solicitations.", url: "https://ocbid.ocgov.com" },
+  { name: "City of Anaheim", type: "city", region: "Orange County / Inland Empire", desc: "Anaheim procurement. Check active bids for custodial services.", url: "https://www.anaheim.net/489/Purchasing" },
+  { name: "Riverside County", type: "county", region: "Orange County / Inland Empire", desc: "Inland Empire county. Large facility portfolio with custodial service needs.", url: "https://www.rctlma.org/general-services/purchasing/" },
+  { name: "San Bernardino County", type: "county", region: "Orange County / Inland Empire", desc: "Geographically largest county in the US — significant janitorial contract volume.", url: "https://www.sbcounty.gov/cao/purchasing/" },
+
+  { name: "Ventura County", type: "county", region: "Central Coast", desc: "County procurement for cleaning services.", url: "https://www.ventura.org/gsa/purchasing/" },
+  { name: "City of Santa Barbara", type: "city", region: "Central Coast", desc: "City solicitations including facility maintenance and custodial services.", url: "https://www.santabarbaraca.gov/government/departments/administrative-services/purchasing" },
+
+  { name: "DemandStar", type: "agg", region: "Statewide aggregator", desc: "Free to register. Aggregates city/county solicitations. Strong Northern CA coverage.", url: "https://network.demandstar.com/" },
+  { name: "PlanetBids vendor portal", type: "agg", region: "Statewide aggregator", desc: "One login — see which CA agencies use PlanetBids and register for all at once.", url: "https://home.planetbids.com/product/vendors" },
+];
+
+const typeLabels = { state:"State", fed:"Federal", county:"County", city:"City", transit:"Transit / Airport", school:"School / College", agg:"Aggregator" };
+const typeBadge  = { state:"badge-state", fed:"badge-fed", county:"badge-county", city:"badge-city", transit:"badge-transit", school:"badge-school", agg:"badge-agg" };
+
+function render(list) {
+  const container = document.getElementById("portal-list");
+  if (!list.length) { container.innerHTML = '<p style="font-size:13px;color:var(--color-text-secondary);padding:1rem 0;">No portals match your filter.</p>'; return; }
+  const regions = [...new Set(list.map(p => p.region))];
+  let html = "";
+  for (const region of regions) {
+    html += `<div class="section-label">${region}</div><div class="card">`;
+    const items = list.filter(p => p.region === region);
+    for (const p of items) {
+      html += `<div class="portal-entry">
+        <div class="row">
+          <span class="badge ${typeBadge[p.type]}">${typeLabels[p.type]}</span>
+          <div>
+            <div class="card-title">${p.name}</div>
+            <div class="card-sub">${p.desc}</div>
+            <a class="card-link" href="${p.url}" target="_blank">${p.url}</a>
+          </div>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  container.innerHTML = html;
+}
+
+function filter() {
+  const kw = document.getElementById("kw").value.toLowerCase();
+  const type = document.getElementById("type").value;
+  const filtered = portals.filter(p => {
+    const matchKw = !kw || p.name.toLowerCase().includes(kw) || p.region.toLowerCase().includes(kw) || p.desc.toLowerCase().includes(kw);
+    const matchType = !type || p.type === type;
+    return matchKw && matchType;
+  });
+  render(filtered);
+}
+
+render(portals);
+</script>

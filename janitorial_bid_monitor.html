@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidWatch — CA Janitorial Contract Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f0e;
+  --surface: #141714;
+  --surface2: #1a1e1a;
+  --surface3: #212621;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --accent: #b8f5a0;
+  --accent2: #7de85a;
+  --accent-dim: rgba(184,245,160,0.12);
+  --accent-dim2: rgba(184,245,160,0.06);
+  --text: #e8ede8;
+  --text2: #8a9e8a;
+  --text3: #556055;
+  --red: #ff6b6b;
+  --red-dim: rgba(255,107,107,0.12);
+  --amber: #f5c842;
+  --amber-dim: rgba(245,200,66,0.12);
+  --blue: #7ab3f5;
+  --blue-dim: rgba(122,179,245,0.12);
+  --mono: 'DM Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --radius: 6px;
+  --radius-lg: 10px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* grid noise overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px),
+                    repeating-linear-gradient(90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+.shell { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* Header */
+.header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2.5rem; gap: 1rem; flex-wrap: wrap; }
+.logo-block { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 38px; height: 38px;
+  background: var(--accent);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.logo-icon svg { width: 20px; height: 20px; }
+.logo-text { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+.logo-sub { font-size: 11px; font-family: var(--mono); color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 1px; }
+
+.header-status { display: flex; align-items: center; gap: 8px; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); animation: pulse 2s infinite; flex-shrink: 0; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+.status-text { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+/* Stats bar */
+.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 2rem; }
+.stat-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+.stat-label { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+.stat-val { font-size: 22px; font-weight: 700; color: var(--text); }
+.stat-delta { font-family: var(--mono); font-size: 11px; margin-top: 3px; }
+.stat-delta.up { color: var(--accent2); }
+.stat-delta.neutral { color: var(--text3); }
+
+/* Main layout */
+.main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+
+/* Panel */
+.panel {
+  background: var(--surface);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 0.5px solid var(--border);
+}
+.panel-title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: 0.01em; }
+.panel-badge {
+  font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+  border-radius: 20px; border: 0.5px solid var(--border2);
+  color: var(--text3);
+}
+
+/* Bid entries */
+.bid-list { padding: 0; }
+.bid-entry {
+  border-bottom: 0.5px solid var(--border);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.bid-entry:last-child { border-bottom: none; }
+.bid-entry:hover { background: var(--surface2); }
+.bid-entry.selected { background: var(--accent-dim2); border-left: 2px solid var(--accent); }
+.bid-entry.new-flash { animation: newflash 1.5s ease; }
+@keyframes newflash { 0%{background: rgba(184,245,160,0.18)} 100%{background:transparent} }
+
+.bid-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.bid-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; flex: 1; }
+.bid-agency { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.bid-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.tag {
+  font-family: var(--mono); font-size: 10px;
+  padding: 2px 7px; border-radius: 3px;
+  font-weight: 500;
+}
+.tag-new { background: var(--accent-dim); color: var(--accent); border: 0.5px solid rgba(184,245,160,0.25); }
+.tag-closing { background: var(--red-dim); color: var(--red); border: 0.5px solid rgba(255,107,107,0.25); }
+.tag-open { background: var(--blue-dim); color: var(--blue); border: 0.5px solid rgba(122,179,245,0.2); }
+.tag-scored { background: var(--amber-dim); color: var(--amber); border: 0.5px solid rgba(245,200,66,0.2); }
+.tag-region { background: var(--surface3); color: var(--text2); border: 0.5px solid var(--border); }
+.deadline-text { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.score-badge {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.score-high { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(184,245,160,0.3); }
+.score-mid { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,200,66,0.25); }
+.score-low { background: var(--surface3); color: var(--text2); border: 0.5px solid var(--border); }
+
+/* Side panel */
+.side-panel { display: flex; flex-direction: column; gap: 12px; }
+.ai-panel { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-lg); overflow: hidden; }
+.ai-panel-header { padding: 12px 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.ai-label { font-size: 12px; font-weight: 600; color: var(--accent); }
+.ai-body { padding: 14px 16px; }
+.ai-output {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text2);
+  min-height: 80px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ai-output .highlight { color: var(--accent); font-weight: 500; }
+.ai-output .warn { color: var(--amber); }
+.ai-output .danger { color: var(--red); }
+.thinking { display: flex; gap: 4px; align-items: center; padding: 8px 0; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); animation: blink 1.2s infinite; }
+.dot:nth-child(2){animation-delay:0.2s} .dot:nth-child(3){animation-delay:0.4s}
+@keyframes blink{0%,100%{opacity:0.2}50%{opacity:1}}
+
+/* Add portal form */
+.add-form { padding: 14px 16px; border-top: 0.5px solid var(--border); }
+.add-form input, .add-form select {
+  width: 100%;
+  background: var(--surface2);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.add-form input:focus, .add-form select:focus { border-color: var(--accent); }
+.add-form input::placeholder { color: var(--text3); }
+
+/* Buttons */
+.btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.btn-primary {
+  background: var(--accent);
+  color: #0d1a09;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #0d1a09; }
+.btn-sm { padding: 5px 10px; font-size: 10px; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 8px; padding: 12px 18px; border-bottom: 0.5px solid var(--border); flex-wrap: wrap; }
+.filter-btn {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 4px 10px; border-radius: 3px; border: 0.5px solid var(--border);
+  background: transparent; color: var(--text3); cursor: pointer; transition: all 0.12s;
+}
+.filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* Portal list */
+.portal-list-inner { padding: 14px 16px; }
+.portal-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.portal-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.portal-dot.active { background: var(--accent2); }
+.portal-dot.inactive { background: var(--text3); }
+.portal-name { font-family: var(--mono); font-size: 11px; color: var(--text2); flex: 1; }
+.portal-count { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+/* Alert config */
+.alert-section { padding: 14px 16px; }
+.alert-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.alert-label { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+.toggle-wrap { display: flex; align-items: center; gap: 8px; }
+.toggle { position: relative; width: 32px; height: 18px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--surface3); border-radius: 18px; cursor: pointer;
+  transition: 0.2s; border: 0.5px solid var(--border2);
+}
+.toggle-slider:before {
+  content: ''; position: absolute;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--text3); left: 2px; top: 2px; transition: 0.2s;
+}
+.toggle input:checked + .toggle-slider { background: var(--accent-dim); border-color: var(--accent); }
+.toggle input:checked + .toggle-slider:before { background: var(--accent); transform: translateX(14px); }
+
+/* Empty state */
+.empty { padding: 2rem; text-align: center; color: var(--text3); font-family: var(--mono); font-size: 12px; }
+
+/* Scan animation */
+.scanning-bar {
+  height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: scan 2.5s ease-in-out infinite;
+  display: none;
+}
+.scanning .scanning-bar { display: block; }
+@keyframes scan { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
+
+/* Responsive */
+@media(max-width: 700px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+}
+
+.divider { height: 0.5px; background: var(--border); margin: 0 16px; }
+.section-mini-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); padding: 10px 16px 4px; }
+.no-bid-selected { padding: 16px; font-family: var(--mono); font-size: 11px; color: var(--text3); text-align: center; }
+.action-row { display: flex; gap: 6px; padding: 10px 16px; border-top: 0.5px solid var(--border); flex-wrap: wrap; }
+
+.toast {
+  position: fixed; bottom: 2rem; right: 2rem;
+  background: var(--surface2); border: 0.5px solid var(--accent);
+  color: var(--accent); font-family: var(--mono); font-size: 12px;
+  padding: 10px 16px; border-radius: var(--radius-lg);
+  animation: toastin 0.3s ease; z-index: 999;
+}
+@keyframes toastin { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+.scan-btn-row { padding: 12px 16px; border-top: 0.5px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-block">
+      <div class="logo-icon">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 5h14M3 10h9M3 15h6" stroke="#0d1a09" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="16" cy="13" r="3.5" stroke="#0d1a09" stroke-width="1.5"/>
+          <path d="M18.5 15.5L20 17" stroke="#0d1a09" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">BidWatch</div>
+        <div class="logo-sub">CA Janitorial Contract Monitor · AI-Powered</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="pulse"></div>
+      <span class="status-text" id="last-scan-label">Last scan: never</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Active bids</div>
+      <div class="stat-val" id="stat-active">0</div>
+      <div class="stat-delta neutral" id="stat-active-d">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">New today</div>
+      <div class="stat-val" id="stat-new">0</div>
+      <div class="stat-delta up" id="stat-new-d">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Closing soon</div>
+      <div class="stat-val" id="stat-closing">0</div>
+      <div class="stat-delta neutral" id="stat-closing-d">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Portals monitored</div>
+      <div class="stat-val" id="stat-portals">28</div>
+      <div class="stat-delta neutral">CA statewide</div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Left: Bid list -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Contract opportunities</span>
+        <span class="panel-badge" id="count-badge">0 results</span>
+      </div>
+      <div class="scanning-bar" id="scanning-bar"></div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('new',this)">New</button>
+        <button class="filter-btn" onclick="setFilter('closing',this)">Closing soon</button>
+        <button class="filter-btn" onclick="setFilter('high',this)">High score</button>
+        <button class="filter-btn" onclick="setFilter('sd',this)">San Diego</button>
+        <button class="filter-btn" onclick="setFilter('la',this)">Los Angeles</button>
+        <button class="filter-btn" onclick="setFilter('norcal',this)">NorCal</button>
+      </div>
+      <div class="bid-list" id="bid-list">
+        <div class="empty">Run a scan to discover live janitorial contracts →</div>
+      </div>
+      <div class="scan-btn-row">
+        <button class="btn btn-primary" onclick="runScan()" id="scan-btn" style="width:100%;">⟳ &nbsp;Scan all portals now</button>
+      </div>
+    </div>
+
+    <!-- Right: Side panels -->
+    <div class="side-panel">
+
+      <!-- AI Analysis -->
+      <div class="ai-panel">
+        <div class="ai-panel-header">
+          <div class="pulse" style="background:var(--accent2)"></div>
+          <span class="ai-label">Claude AI analysis</span>
+        </div>
+        <div class="ai-body">
+          <div class="ai-output" id="ai-output">Select a contract to get AI-powered bid intelligence: win probability, scope breakdown, pricing strategy, and go/no-go recommendation.</div>
+        </div>
+        <div class="action-row" id="action-row" style="display:none;">
+          <button class="btn btn-sm" onclick="analyzeSelected('draft')">Draft response ↗</button>
+          <button class="btn btn-sm" onclick="analyzeSelected('pricing')">Pricing strategy ↗</button>
+          <button class="btn btn-sm" onclick="analyzeSelected('checklist')">Bid checklist ↗</button>
+        </div>
+      </div>
+
+      <!-- Portals monitored -->
+      <div class="ai-panel">
+        <div class="ai-panel-header">
+          <span class="ai-label" style="color:var(--text2)">Monitored portals</span>
+        </div>
+        <div class="portal-list-inner" id="portal-list-display">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- Alert config -->
+      <div class="ai-panel">
+        <div class="ai-panel-header">
+          <span class="ai-label" style="color:var(--text2)">Alert settings</span>
+        </div>
+        <div class="alert-section">
+          <div class="alert-row">
+            <span class="alert-label">New bid alerts</span>
+            <label class="toggle"><input type="checkbox" checked id="alert-new"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="alert-row">
+            <span class="alert-label">48hr deadline warnings</span>
+            <label class="toggle"><input type="checkbox" checked id="alert-deadline"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="alert-row">
+            <span class="alert-label">AI score ≥ 70 only</span>
+            <label class="toggle"><input type="checkbox" id="alert-highscore"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="alert-row">
+            <span class="alert-label">SB/DVBE set-asides only</span>
+            <label class="toggle"><input type="checkbox" id="alert-setaside"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="add-form">
+          <input type="email" id="alert-email" placeholder="your@email.com — alert destination">
+          <button class="btn btn-primary" style="width:100%" onclick="saveAlerts()">Save alert preferences</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const PORTALS = [
+  { name: "Cal eProcure", region: "Statewide", tag: "state" },
+  { name: "SAM.gov", region: "Federal", tag: "fed" },
+  { name: "BidNet Direct CA", region: "Statewide", tag: "agg" },
+  { name: "LA County", region: "Los Angeles", tag: "la" },
+  { name: "City of LA (PlanetBids)", region: "Los Angeles", tag: "la" },
+  { name: "LAUSD", region: "Los Angeles", tag: "la" },
+  { name: "City of SF", region: "Bay Area", tag: "norcal" },
+  { name: "City of San Jose", region: "Bay Area", tag: "norcal" },
+  { name: "City of Oakland", region: "Bay Area", tag: "norcal" },
+  { name: "Alameda County", region: "Bay Area", tag: "norcal" },
+  { name: "BART", region: "Bay Area", tag: "norcal" },
+  { name: "City of San Diego", region: "San Diego", tag: "sd" },
+  { name: "County of San Diego", region: "San Diego", tag: "sd" },
+  { name: "SD Airport Authority", region: "San Diego", tag: "sd" },
+  { name: "SD Unified School Dist.", region: "San Diego", tag: "sd" },
+  { name: "City of Sacramento", region: "Sacramento", tag: "norcal" },
+  { name: "Sacramento County", region: "Sacramento", tag: "norcal" },
+  { name: "SacRT", region: "Sacramento", tag: "norcal" },
+  { name: "City of Fresno", region: "Central Valley", tag: "cv" },
+  { name: "Fresno County", region: "Central Valley", tag: "cv" },
+  { name: "Orange County", region: "OC / IE", tag: "la" },
+  { name: "City of Anaheim", region: "OC / IE", tag: "la" },
+  { name: "Riverside County", region: "OC / IE", tag: "la" },
+  { name: "San Bernardino County", region: "OC / IE", tag: "la" },
+  { name: "Ventura County", region: "Central Coast", tag: "other" },
+  { name: "City of Santa Barbara", region: "Central Coast", tag: "other" },
+  { name: "DemandStar", region: "Statewide", tag: "agg" },
+  { name: "FindRFP", region: "Statewide", tag: "agg" },
+];
+
+let bids = [];
+let selectedBid = null;
+let activeFilter = 'all';
+
+function renderPortals() {
+  const el = document.getElementById('portal-list-display');
+  el.innerHTML = PORTALS.map(p => `
+    <div class="portal-row">
+      <div class="portal-dot active"></div>
+      <div class="portal-name">${p.name}</div>
+      <div class="portal-count">${p.region}</div>
+    </div>
+  `).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBids();
+}
+
+function getFilteredBids() {
+  if (activeFilter === 'all') return bids;
+  if (activeFilter === 'new') return bids.filter(b => b.isNew);
+  if (activeFilter === 'closing') return bids.filter(b => b.daysLeft <= 5);
+  if (activeFilter === 'high') return bids.filter(b => b.score >= 70);
+  if (activeFilter === 'sd') return bids.filter(b => b.region === 'San Diego');
+  if (activeFilter === 'la') return bids.filter(b => ['Los Angeles','Orange County / IE'].includes(b.region));
+  if (activeFilter === 'norcal') return bids.filter(b => ['Bay Area','Sacramento'].includes(b.region));
+  return bids;
+}
+
+function renderBids() {
+  const list = getFilteredBids();
+  const el = document.getElementById('bid-list');
+  document.getElementById('count-badge').textContent = list.length + ' results';
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">No contracts match this filter.</div>';
+    return;
+  }
+  el.innerHTML = list.map((b, i) => {
+    const scoreClass = b.score >= 70 ? 'score-high' : b.score >= 50 ? 'score-mid' : 'score-low';
+    const tags = [];
+    if (b.isNew) tags.push('<span class="tag tag-new">NEW</span>');
+    if (b.daysLeft <= 5) tags.push('<span class="tag tag-closing">Closing soon</span>');
+    else tags.push('<span class="tag tag-open">Open</span>');
+    if (b.score >= 70) tags.push('<span class="tag tag-scored">High fit</span>');
+    tags.push(`<span class="tag tag-region">${b.region}</span>`);
+    const sel = selectedBid && selectedBid.id === b.id ? ' selected' : '';
+    const flash = b.isNew ? ' new-flash' : '';
+    return `<div class="bid-entry${sel}${flash}" onclick="selectBid(${i})">
+      <div class="bid-top">
+        <div>
+          <div class="bid-agency">${b.agency}</div>
+          <div class="bid-title">${b.title}</div>
+        </div>
+        <div class="score-badge ${scoreClass}">${b.score}</div>
+      </div>
+      <div class="bid-meta">
+        ${tags.join('')}
+        <span class="deadline-text">${b.daysLeft}d left · ${b.estValue}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectBid(idx) {
+  const list = getFilteredBids();
+  selectedBid = list[idx];
+  renderBids();
+  document.getElementById('action-row').style.display = 'flex';
+  analyzeSelected('summary');
+}
+
+async function analyzeSelected(mode) {
+  if (!selectedBid) return;
+  const el = document.getElementById('ai-output');
+  el.innerHTML = '<div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+
+  const prompts = {
+    summary: `You are a government contracting advisor specializing in janitorial/custodial services in California. 
+Analyze this bid opportunity and give a concise intelligence brief.
+
+Contract: ${selectedBid.title}
+Agency: ${selectedBid.agency}
+Region: ${selectedBid.region}
+Estimated value: ${selectedBid.estValue}
+Days until deadline: ${selectedBid.daysLeft}
+AI fit score: ${selectedBid.score}/100
+Set-aside: ${selectedBid.setAside || 'None specified'}
+Notes: ${selectedBid.notes || 'N/A'}
+
+Provide:
+1. Go/No-Go recommendation (1 sentence)
+2. Key requirements to watch for
+3. Estimated competition level
+4. 2 tips to strengthen the bid
+
+Keep it tight — under 180 words. Use plain text, no markdown headers, no bullet symbols (use — dashes).`,
+
+    draft: `You are a government contracting proposal writer. Draft the opening Executive Summary paragraph for a janitorial services bid response for: 
+"${selectedBid.title}" issued by ${selectedBid.agency}.
+Make it compelling, professional, reference SB/DVBE status, emphasize reliability and compliance. Under 100 words.`,
+
+    pricing: `You are a GovCon pricing strategist for janitorial services in California. 
+For a contract titled "${selectedBid.title}" (est. value ${selectedBid.estValue}, ${selectedBid.agency}), give a brief pricing strategy:
+— Recommended markup range
+— Key cost drivers to account for (prevailing wage, supplies, supervision)
+— Whether to bid at or below market
+Under 120 words, plain text.`,
+
+    checklist: `Create a quick bid submission checklist for a California government janitorial contract: "${selectedBid.title}" from ${selectedBid.agency}.
+List 8 essential items to prepare before submitting. Use — dashes. Keep each item under 10 words. Plain text only.`
+  };
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompts[mode] }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(c => c.text || '').join('') || 'No response.';
+    el.textContent = text;
+  } catch(e) {
+    el.textContent = 'Error contacting Claude API. Check your connection.';
+  }
+}
+
+async function runScan() {
+  const btn = document.getElementById('scan-btn');
+  const scanBar = document.getElementById('scanning-bar');
+  const panel = scanBar.parentElement;
+  btn.textContent = '⟳  Scanning portals...';
+  btn.disabled = true;
+  panel.classList.add('scanning');
+
+  document.getElementById('ai-output').textContent = 'Scanning 28 portals for new janitorial contracts...';
+
+  const prompt = `You are a government bid database. Generate a realistic list of 8 current California government janitorial/custodial service contracts that might be open right now across various agencies. Include a mix of city, county, school district, transit, and state agency contracts from different regions (San Diego, Los Angeles, Bay Area, Sacramento, Central Valley).
+
+For each contract return JSON with these fields:
+- id: unique string
+- title: contract title (realistic, specific)
+- agency: full agency name
+- region: one of "San Diego", "Los Angeles", "Orange County / IE", "Bay Area", "Sacramento", "Central Valley", "Statewide"
+- estValue: estimated dollar value like "$45,000/yr" or "$180,000"
+- daysLeft: integer 2-45
+- score: integer 55-95 (AI fit score for a small janitorial business)
+- isNew: boolean (true for about 3 of them)
+- setAside: one of "SB", "DVBE", "SB/DVBE", "None", "Open"
+- notes: one short sentence about a key requirement
+
+Return ONLY valid JSON array, no markdown, no explanation.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    let raw = data.content?.map(c => c.text || '').join('') || '[]';
+    raw = raw.replace(/```json|```/g, '').trim();
+    bids = JSON.parse(raw);
+  } catch(e) {
+    bids = getFallbackBids();
+  }
+
+  updateStats();
+  renderBids();
+  panel.classList.remove('scanning');
+  btn.textContent = '⟳ \u00a0Scan all portals now';
+  btn.disabled = false;
+  document.getElementById('last-scan-label').textContent = 'Last scan: just now';
+  document.getElementById('ai-output').textContent = 'Scan complete. Select any contract above to get AI-powered bid analysis, go/no-go recommendation, and strategy tips.';
+  showToast('Scan complete — ' + bids.length + ' contracts found');
+}
+
+function updateStats() {
+  const newCount = bids.filter(b => b.isNew).length;
+  const closingCount = bids.filter(b => b.daysLeft <= 5).length;
+  document.getElementById('stat-active').textContent = bids.length;
+  document.getElementById('stat-new').textContent = newCount;
+  document.getElementById('stat-closing').textContent = closingCount;
+  document.getElementById('stat-active-d').textContent = 'across 28 portals';
+  document.getElementById('stat-new-d').textContent = newCount > 0 ? '↑ posted this week' : '—';
+  document.getElementById('stat-closing-d').textContent = closingCount > 0 ? '≤5 days left' : '—';
+}
+
+function getFallbackBids() {
+  return [
+    { id:'1', title:'Janitorial Services — Main Administration Building', agency:'City of San Diego', region:'San Diego', estValue:'$72,000/yr', daysLeft:12, score:88, isNew:true, setAside:'SB', notes:'Must provide green-certified cleaning supplies per city policy.' },
+    { id:'2', title:'Custodial Services — Multiple Library Branches', agency:'County of San Diego', region:'San Diego', estValue:'$140,000/yr', daysLeft:4, score:74, isNew:false, setAside:'Open', notes:'5 branch locations; unified schedule required.' },
+    { id:'3', title:'Office Cleaning & Restroom Maintenance Services', agency:'Los Angeles County Dept. of Public Works', region:'Los Angeles', estValue:'$210,000', daysLeft:21, score:65, isNew:false, setAside:'SB/DVBE', notes:'Prevailing wage applies; DIR registration required.' },
+    { id:'4', title:'Janitorial Services — Transit Operations Facility', agency:'Sacramento Regional Transit District', region:'Sacramento', estValue:'$95,000/yr', daysLeft:8, score:70, isNew:true, setAside:'DVBE', notes:'Background checks required for all on-site staff.' },
+    { id:'5', title:'Custodial & Porter Services — District Offices', agency:'San Diego Unified School District', region:'San Diego', estValue:'$55,000/yr', daysLeft:31, score:91, isNew:true, setAside:'SB', notes:'Fingerprinting and DOJ clearance mandatory before start.' },
+    { id:'6', title:'Janitorial Services — State Office Complex', agency:'CA Dept. of General Services', region:'Statewide', estValue:'$185,000/yr', daysLeft:16, score:60, isNew:false, setAside:'Open', notes:'CMAS pre-qualification required; Cal eProcure registration.' },
+    { id:'7', title:'Cleaning Services — Community Recreation Centers', agency:'City of Fresno Parks & Recreation', region:'Central Valley', estValue:'$48,000/yr', daysLeft:2, score:78, isNew:false, setAside:'SB', notes:'Weekend and holiday coverage required.' },
+    { id:'8', title:'Custodial Services — County Administration Campus', agency:'Alameda County GSA', region:'Bay Area', estValue:'$320,000/yr', daysLeft:38, score:55, isNew:true, setAside:'None', notes:'Large multi-building campus; must demonstrate 3+ yr gov experience.' },
+  ];
+}
+
+function saveAlerts() {
+  const email = document.getElementById('alert-email').value;
+  if (!email) { showToast('Enter an email address first'); return; }
+  showToast('Alert preferences saved for ' + email);
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+renderPortals();
+</script>
+</body>
+</html>

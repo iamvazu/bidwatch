@@ -1,0 +1,399 @@
+None: BidWatch
+None: California Janitorial Government Contract Monitor
+None: AI-Powered Bid Discovery, Scoring & Proposal Intelligence
+None: 
+Heading 1: 1. Executive Summary
+None: BidWatch is a full-stack SaaS web application that automates the discovery, scoring, and analysis of California government janitorial contracts. It monitors 28+ procurement portals across the state, uses Claude AI to score bid fit, and delivers actionable proposal intelligence to small janitorial businesses competing for public sector contracts.
+None: 
+None: The problem it solves: a janitorial business owner today must manually check dozens of city, county, school district, transit, and state portals every day to find relevant contracts. Most miss bids because the process is manual, time-consuming, and fragmented. BidWatch consolidates this into one real-time dashboard with AI-powered go/no-go recommendations.
+None: 
+None: 
+Heading 1: 2. Problem Statement
+Heading 3: Current pain points
+List Paragraph: 28+ separate portals require individual registration and manual checking
+List Paragraph: No single search covers city, county, school district, transit, and state bids simultaneously
+List Paragraph: Bid documents are dense PDFs — extracting scope, deadlines, and requirements takes hours
+List Paragraph: No objective way to score bid fit against company capabilities
+List Paragraph: Small businesses miss closing deadlines due to lack of centralized tracking
+List Paragraph: Proposal writing is time-consuming and repetitive across similar contract types
+List Paragraph: SB/DVBE set-aside opportunities are buried and hard to filter for
+None: 
+Heading 3: Who is affected
+List Paragraph: Small janitorial/custodial businesses bidding on California government contracts
+List Paragraph: DVBE/SB-certified cleaning companies seeking set-aside opportunities
+List Paragraph: Business development staff spending 10+ hours/week on manual portal research
+None: 
+Heading 1: 3. Product Goals & Success Metrics
+None: 
+None: 
+Heading 1: 4. Scope
+Heading 3: In scope — v1.0
+List Paragraph: Portal monitoring: SAM.gov API (federal) + scraping for 27 CA portals
+List Paragraph: Keyword filtering: janitorial, custodial, cleaning, porter, facility maintenance
+List Paragraph: NAICS 561720 filtering on SAM.gov
+List Paragraph: AI bid scoring (0–100 fit score) via Claude API
+List Paragraph: AI bid analysis: go/no-go, scope summary, competition estimate
+List Paragraph: Email alerts: new bids, deadline warnings (48hr), high-score matches
+List Paragraph: Alert preferences: SB/DVBE only, score threshold, region filter
+List Paragraph: Bid pipeline tracker: kanban-style (Discovered → Evaluating → Bidding → Submitted → Won/Lost)
+List Paragraph: AI proposal tools: executive summary draft, pricing strategy, bid checklist
+List Paragraph: User accounts with company profile (capabilities, certifications, past performance)
+None: 
+Heading 3: Out of scope — v1.0
+List Paragraph: Direct electronic bid submission to portals (requires portal-specific integration)
+List Paragraph: Full proposal document generation (v2 feature)
+List Paragraph: Teaming partner marketplace
+List Paragraph: Mobile app (web-responsive only in v1)
+List Paragraph: Coverage outside California
+None: 
+Heading 1: 5. Technology Stack
+None: 
+None: 
+None: 
+Heading 1: 6. System Architecture
+Heading 3: High-level component map
+None: 
+None: 
+Heading 3: Data flow
+List Paragraph: Scraper runs on cron (every 6hrs) → fetches new bids from all 28 portals
+List Paragraph: New bids saved to PostgreSQL bids table with status = "new"
+List Paragraph: AI scoring worker picks up unscored bids → calls Claude API → stores score + summary
+List Paragraph: Alert engine checks for alertable bids → sends emails via Resend
+List Paragraph: User opens BidWatch dashboard → Next.js calls REST API → displays sorted, scored bids
+List Paragraph: User clicks a bid → frontend calls /bids/:id/analysis → Claude generates detailed brief
+List Paragraph: User moves bid to pipeline stage → PUT /pipeline/:id/stage updates DB
+None: 
+Heading 1: 7. Database Schema (PostgreSQL — Neon)
+None: 
+Heading 3: Table: bids
+None: 
+Heading 3: Table: ai_analyses
+None: 
+Heading 3: Table: users
+None: 
+Heading 3: Table: alert_configs
+None: 
+Heading 3: Table: pipeline
+None: 
+Heading 1: 8. Portal Coverage & Scraping Strategy
+None: 
+None: 
+None: 
+Heading 1: 9. Backend API Endpoints
+None: 
+None: 
+Heading 1: 10. Frontend Pages & Features
+None: 
+Heading 3: 10.1 Dashboard — /dashboard
+List Paragraph: Stats bar: Active bids, New today, Closing soon, Portals monitored
+List Paragraph: Bid feed with filter bar (All / New / Closing / High Score / Region filters)
+List Paragraph: Each bid card shows: agency, title, AI fit score badge, tags (NEW, Closing, SB set-aside), region, days left, estimated value
+List Paragraph: Right panel: AI analysis output for selected bid
+List Paragraph: Action buttons: Draft response / Pricing strategy / Bid checklist
+List Paragraph: Scan now button (triggers manual scrape, rate-limited to 1/hr)
+None: 
+Heading 3: 10.2 Bid Detail — /bids/:id
+List Paragraph: Full bid metadata: agency, portal link, posted date, deadline, set-aside type, NAICS
+List Paragraph: Document downloads: links to RFP/IFB PDFs
+List Paragraph: Full AI analysis panel with all 4 modes
+List Paragraph: Add to pipeline button
+List Paragraph: Notes field (saved to pipeline table)
+None: 
+Heading 3: 10.3 Pipeline — /pipeline
+List Paragraph: Kanban board: Discovered → Evaluating → Bidding → Submitted → Won / Lost
+List Paragraph: Drag cards between stages (or click to update)
+List Paragraph: Each card shows bid title, agency, deadline countdown, planned bid amount
+List Paragraph: Win/loss tracking for historical reporting
+None: 
+Heading 3: 10.4 Portals — /portals
+List Paragraph: List of all 28 monitored portals with status (active/inactive), last scan time, bids found count
+List Paragraph: Direct link to each portal for manual registration
+None: 
+Heading 3: 10.5 Settings — /settings
+List Paragraph: Company profile: name, certifications (SB/DVBE), regions, NAICS codes, past performance text
+List Paragraph: Alert configuration: toggles, email, frequency, score threshold
+List Paragraph: Account: password change, email
+None: 
+Heading 1: 11. AI Features (Claude API)
+None: 
+None: 
+None: 
+Heading 1: 12. Build Phases & Milestones
+None: 
+None: 
+None: Total estimated build time: 8–10 weeks for a solo developer, 4–5 weeks with 2 developers.
+None: 
+Heading 1: 13. Deployment Architecture
+None: 
+None: 
+Heading 1: 14. Environment Variables
+None: 
+None: 
+Heading 1: 15. Non-Functional Requirements
+Heading 3: Performance
+List Paragraph: Dashboard initial load: <2 seconds
+List Paragraph: AI analysis response: <8 seconds (streaming preferred)
+List Paragraph: Scraper must complete full portal scan in <30 minutes
+None: 
+Heading 3: Reliability
+List Paragraph: Scraper failures must not crash the API — use try/catch per portal, log errors, continue
+List Paragraph: If Claude API is unavailable, bids still display without scores
+List Paragraph: Dead letter queue for failed alert emails (retry 3x)
+None: 
+Heading 3: Security
+List Paragraph: All API routes except /auth/* require valid JWT
+List Paragraph: Rate limit: 60 req/min per IP on API, 1 manual scan/hr per user
+List Paragraph: Store only bcrypt-hashed passwords
+List Paragraph: Scraping must respect robots.txt and add 2–5 second delays between requests
+None: 
+Heading 3: Legal & compliance
+List Paragraph: Scraped data is publicly available bid data — legal to collect and display
+List Paragraph: Do not cache full PDF documents — only link to originals on portal
+List Paragraph: Include disclaimer: data may be delayed; always verify deadlines on source portal
+None: 
+Heading 1: 16. Future Roadmap (v2+)
+List Paragraph: Full proposal document generator (Word/PDF output)
+List Paragraph: Teaming partner finder — search certified SB/DVBE businesses by capability
+List Paragraph: Expansion to other states (Texas, Florida, New York)
+List Paragraph: Mobile app (React Native)
+List Paragraph: Direct portal submission integrations where APIs exist
+List Paragraph: Win rate analytics and historical bid performance dashboard
+List Paragraph: Competitor intelligence — who won similar past contracts and at what price
+List Paragraph: Subscription tiers: Free (5 alerts/mo), Pro ($49/mo), Team ($149/mo)
+None: 
+Heading 1: 17. Risks & Mitigations
+None: 
+None: 
+Heading 1: 18. Getting Started — Developer Quickstart
+Heading 3: Step 1: Set up accounts (Day 1)
+List Paragraph: GitHub — create repo bidwatch-app
+List Paragraph: Vercel — vercel.com — connect GitHub, create project
+List Paragraph: Railway — railway.app — create project, add Node.js service
+List Paragraph: Neon — neon.tech — create project, copy DATABASE_URL
+List Paragraph: Resend — resend.com — create account, verify domain, copy API key
+List Paragraph: Anthropic — console.anthropic.com — create API key
+List Paragraph: SAM.gov — api.sam.gov — register for free API key
+None: 
+Heading 3: Step 2: Initialize project
+List Paragraph: npx create-next-app@latest bidwatch-frontend
+List Paragraph: mkdir bidwatch-api && cd bidwatch-api && npm init
+List Paragraph: npm install express pg playwright pdf-parse node-cron resend jsonwebtoken bcrypt
+List Paragraph: npm install -D @types/node typescript
+None: 
+Heading 3: Step 3: Database
+List Paragraph: Run schema SQL against Neon connection string
+List Paragraph: Test connection: node -e "const {Pool}=require('pg'); new Pool({connectionString: process.env.DATABASE_URL}).query('SELECT NOW()').then(console.log)"
+None: 
+Heading 3: Step 4: First working scraper
+List Paragraph: Implement SAM.gov API call (simplest — REST JSON, no scraping)
+List Paragraph: Store results in bids table
+List Paragraph: Verify data appears in Neon console
+None: 
+Heading 3: Step 5: Deploy
+List Paragraph: Push API to Railway — set env vars in Railway dashboard
+List Paragraph: Push frontend to Vercel — set NEXT_PUBLIC_API_URL to Railway URL
+List Paragraph: Verify end-to-end: frontend calls API, API queries DB, bids render
+None: 
+None: BidWatch PRD v1.0 · April 2026 · Confidential
+
+--- TABLE 0 ---
+Document type | Product Requirements Document (PRD)
+Version | v1.0
+Date | April 2026
+Status | Draft — Ready for Engineering
+Stack | Next.js (Vercel) · Node.js API (Railway/Render) · PostgreSQL (Neon) · Claude AI
+Target market | California janitorial / custodial service businesses
+Primary portals | 28 CA government procurement portals + SAM.gov
+
+--- TABLE 1 ---
+Goal | Enable a small janitorial business to discover, evaluate, and respond to California government contracts in under 30 minutes — instead of hours of manual portal browsing.
+
+--- TABLE 2 ---
+Goal | Success Metric
+Centralize all CA janitorial bids | 28+ portals monitored; <6hr data latency
+Reduce discovery time | From ~3hrs/day to <15 min/day per user
+AI bid scoring | Fit score generated for 100% of discovered bids
+Alert delivery | Email alert within 1hr of new janitorial bid posting
+Proposal acceleration | First draft in <60 seconds per bid
+User retention | >60% of users active after 30 days
+
+--- TABLE 3 ---
+Layer | Technology | Rationale
+Frontend | Next.js 14 (App Router) | SSR + React; deploy free on Vercel
+Hosting — Frontend | Vercel | Free tier; global CDN; auto-deploys from GitHub
+Backend API | Node.js + Express or Fastify | Lightweight REST API for scraping & AI calls
+Hosting — Backend | Railway or Render | Both available in India; free/paid tiers; cron jobs supported
+Database | PostgreSQL via Neon.tech | Serverless Postgres; free 0.5GB tier; works globally incl. India
+Database alt. | Turso (SQLite edge) | Alternative if Neon unavailable; edge-native; free tier
+AI / LLM | Anthropic Claude API (claude-sonnet-4) | Bid scoring, analysis, proposal drafting
+Job scheduling | node-cron on Railway/Render | Runs portal scans every 6 hours
+Email alerts | Resend.com | Free 3,000 emails/mo; simple API; works from India
+Auth | NextAuth.js + JWT | Email/password + Google OAuth
+PDF parsing | pdf-parse npm package | Extract text from bid document PDFs
+Web scraping | Playwright (headless Chrome) | Handles JS-rendered PlanetBids portals
+Search | PostgreSQL full-text search | No extra service needed for v1
+
+--- TABLE 4 ---
+DB Note | Neon.tech (neon.tech) is a serverless PostgreSQL provider that works fully from India, has a free tier (0.5GB, 1 project), and connects via standard Postgres connection strings. No Supabase required. Alternative: Turso.tech for SQLite at the edge.
+
+--- TABLE 5 ---
+Component | Description
+Scraper Service | Node.js workers on Railway/Render. Runs every 6hrs. Hits PlanetBids portals, Cal eProcure RSS, SAM.gov API. Parses HTML/JSON, extracts bid title, agency, deadline, document URLs, estimated value. Stores raw bids in PostgreSQL.
+Deduplication | Each bid gets a hash of (agency + title + deadline). If hash exists in DB, skip. Prevents duplicate alerts.
+AI Scoring Worker | After new bids are stored, a queue processor calls Claude API with bid metadata + user company profile to generate a fit score (0–100) and brief summary. Stores results in bids table.
+Alert Engine | Checks DB every 30 minutes for: new bids (isNew=true, alerted=false), bids where deadline < 48hrs, high-score bids above user threshold. Sends email via Resend API. Marks alerted=true.
+REST API | Express/Fastify server exposing endpoints for: GET /bids, GET /bids/:id/analysis, POST /bids/:id/draft, GET /portals, PUT /user/alerts, GET /pipeline
+Next.js Frontend | BidWatch dashboard UI. Calls REST API. Deployed on Vercel. Includes: bid feed, AI analysis panel, pipeline kanban, alert settings, company profile.
+PostgreSQL (Neon) | Stores: bids, users, company_profiles, alert_configs, pipeline_stages, ai_analyses, portal_registry
+
+--- TABLE 6 ---
+Column | Type | Description
+id | UUID PK | Auto-generated unique ID
+title | TEXT | Contract title as scraped
+agency | TEXT | Issuing government agency name
+region | TEXT | e.g. "San Diego", "Los Angeles"
+portal | TEXT | Source portal name
+portal_url | TEXT | Direct link to bid on portal
+est_value | TEXT | Estimated contract value (text)
+deadline | TIMESTAMPTZ | Bid submission deadline
+posted_at | TIMESTAMPTZ | Date first posted on portal
+set_aside | TEXT | SB / DVBE / SB-DVBE / Open / None
+naics | TEXT | NAICS code (561720 for janitorial)
+doc_urls | TEXT[] | Array of RFP/IFB document URLs
+raw_text | TEXT | Extracted text from bid documents (PDF)
+hash | TEXT UNIQUE | Dedup hash: md5(agency+title+deadline)
+is_new | BOOLEAN | True if discovered in last 24hrs
+alerted | BOOLEAN | True if alert email sent
+created_at | TIMESTAMPTZ | Row creation timestamp
+
+--- TABLE 7 ---
+Column | Type | Description
+id | UUID PK | 
+bid_id | UUID FK | References bids.id
+user_id | UUID FK | References users.id
+fit_score | INTEGER | 0–100 AI-generated fit score
+go_no_go | TEXT | "Go" or "No-Go"
+summary | TEXT | Brief scope summary
+competition_level | TEXT | Low / Medium / High
+key_requirements | TEXT[] | Array of extracted key requirements
+tips | TEXT[] | Array of AI-generated bid tips
+draft_intro | TEXT | AI-drafted executive summary paragraph
+pricing_strategy | TEXT | AI pricing guidance
+checklist | TEXT[] | Submission checklist items
+created_at | TIMESTAMPTZ | 
+
+--- TABLE 8 ---
+Column | Type | Description
+id | UUID PK | 
+email | TEXT UNIQUE | Login email
+password_hash | TEXT | bcrypt hash
+company_name | TEXT | Business name
+certifications | TEXT[] | e.g. ["SB", "DVBE"]
+regions | TEXT[] | Preferred regions to monitor
+naics_codes | TEXT[] | Service NAICS codes
+past_performance | TEXT | Free text summary for AI context
+created_at | TIMESTAMPTZ | 
+
+--- TABLE 9 ---
+Column | Type | Description
+id | UUID PK | 
+user_id | UUID FK | 
+alert_new_bids | BOOLEAN | Alert on every new janitorial bid
+alert_deadline_48hr | BOOLEAN | Alert 48hrs before deadline
+min_score_threshold | INTEGER | Only alert if fit_score ≥ this value (0 = all)
+sb_dvbe_only | BOOLEAN | Only alert on set-aside contracts
+alert_email | TEXT | Destination email for alerts
+alert_frequency | TEXT | "instant" / "daily_digest" / "weekly"
+
+--- TABLE 10 ---
+Column | Type | Description
+id | UUID PK | 
+bid_id | UUID FK | 
+user_id | UUID FK | 
+stage | TEXT | discovered / evaluating / bidding / submitted / won / lost
+notes | TEXT | User notes on this bid
+bid_amount | NUMERIC | User's planned bid price
+updated_at | TIMESTAMPTZ | 
+
+--- TABLE 11 ---
+Portal | Type | Method | Keyword Filter
+SAM.gov | Federal | Official API (free) | NAICS=561720, state=CA
+Cal eProcure (CSCR) | State | RSS feed + HTML scrape | "janitorial" "custodial"
+PlanetBids (20+ agencies) | City/County/School | Playwright scraper | Category: Janitorial
+BidNet Direct CA | Aggregator | HTML scrape | "janitorial" "cleaning"
+County of San Diego (BuyNet) | County | HTML scrape | "custodial" "janitorial"
+LA County Purchasing | County | HTML scrape | "janitorial" "cleaning"
+DemandStar | Aggregator | API (if available) / scrape | Janitorial category
+
+--- TABLE 12 ---
+PlanetBids Note | All PlanetBids portals share the same URL pattern: vendors.planetbids.com/portal/{PORTAL_ID}/bo/bo-search. One Playwright scraper with configurable portal IDs covers all 20+ PlanetBids agencies. Bids can be filtered by commodity code — select the "Janitorial/Custodial" code during scrape.
+
+--- TABLE 13 ---
+Method | Endpoint | Description
+GET | /api/bids | List bids. Query: ?region=&filter=new|closing|high&page=&limit=
+GET | /api/bids/:id | Single bid detail including portal link and docs
+GET | /api/bids/:id/analysis | Get or generate AI analysis for a bid
+POST | /api/bids/:id/draft | Generate AI proposal draft. Body: {type: "intro"|"pricing"|"checklist"}
+GET | /api/portals | List all monitored portals and last-scan time
+POST | /api/scan | Trigger manual scan (admin / rate-limited)
+GET | /api/pipeline | Get user's bid pipeline
+PUT | /api/pipeline/:id | Update pipeline stage or notes
+GET | /api/user/profile | Get user company profile
+PUT | /api/user/profile | Update company name, certs, regions, past performance
+GET | /api/user/alerts | Get alert configuration
+PUT | /api/user/alerts | Update alert preferences and email
+POST | /api/auth/register | Create account
+POST | /api/auth/login | Login, returns JWT
+
+--- TABLE 14 ---
+Feature | Input | Output
+Fit scoring | Bid metadata + company profile | Score 0–100 + 1-line rationale
+Bid brief | Bid metadata + raw doc text | Go/No-Go, scope summary, competition level, 2 tips
+Proposal intro | Bid title + agency + certifications | Executive summary paragraph (<100 words)
+Pricing strategy | Bid title + est. value + region | Markup range, cost drivers, market position advice
+Bid checklist | Bid title + agency + set-aside type | 8-item submission checklist
+PDF extraction | Raw PDF text (pdf-parse) | Structured: scope, requirements, deadlines, evaluation criteria
+
+--- TABLE 15 ---
+AI Model | Use claude-sonnet-4-20250514 for all AI features. Set max_tokens=1000 for analysis, 500 for scoring. Cache AI analyses in ai_analyses table to avoid redundant API calls — only regenerate if user explicitly requests refresh.
+
+--- TABLE 16 ---
+Phase | Name | Deliverables | Timeline
+Phase 0 | Infrastructure | GitHub repo, Vercel project, Railway/Render service, Neon DB provisioned, env vars configured | 3 days
+Phase 1 | Data layer | DB schema created, SAM.gov API integration live, Cal eProcure RSS scraper, dedup logic, bids stored in Postgres | 1 week
+Phase 2 | PlanetBids scraper | Playwright scraper for all 20+ PlanetBids portals, keyword filter, cron scheduling on Railway | 1–2 weeks
+Phase 3 | AI scoring | Claude API integration, fit scoring worker, ai_analyses table populated, caching logic | 1 week
+Phase 4 | REST API | All API endpoints live, JWT auth, user registration/login | 1 week
+Phase 5 | Frontend v1 | Next.js dashboard, bid feed, AI analysis panel, filter bar, alert settings page | 2 weeks
+Phase 6 | Alerts | Resend email integration, alert engine cron, new bid + deadline alerts | 4 days
+Phase 7 | Pipeline | Kanban pipeline page, drag-and-drop, notes, win/loss tracking | 1 week
+Phase 8 | Polish & launch | Mobile responsiveness, error handling, onboarding flow, beta user testing | 1 week
+
+--- TABLE 17 ---
+Service | Platform | Configuration
+Frontend (Next.js) | Vercel | Free tier. Connect GitHub repo. Auto-deploys on push to main. Set NEXT_PUBLIC_API_URL env var.
+Backend API + Cron | Railway | Starter plan (~$5/mo). Deploy Node.js service. Add cron job for scraper. Set PORT, DATABASE_URL, ANTHROPIC_API_KEY, RESEND_API_KEY.
+Backend (alt) | Render | Free tier (spins down after 15min) or Starter $7/mo. Same config as Railway. Both work from India.
+Database | Neon.tech | Free tier: 0.5GB, 1 project, 1 branch. Connect string: postgresql://user:pass@ep-xxx.neon.tech/bidwatch. Add as DATABASE_URL in Railway.
+Email | Resend.com | Free: 3,000 emails/mo. Verify your domain. Use RESEND_API_KEY. Simple REST API, no SMTP config needed.
+AI | Anthropic API | Pay-per-token. claude-sonnet-4 ~$3/M input tokens. A full bid analysis is ~$0.003. Budget $10–30/mo for early users.
+
+--- TABLE 18 ---
+Variable | Service | Notes
+DATABASE_URL | Neon | Postgres connection string from Neon dashboard
+ANTHROPIC_API_KEY | Anthropic | From console.anthropic.com
+RESEND_API_KEY | Resend | From resend.com dashboard
+SAM_GOV_API_KEY | SAM.gov | Free key from api.sam.gov/signup
+JWT_SECRET | Auth | 32+ char random string
+NEXT_PUBLIC_API_URL | Frontend | Railway/Render backend URL
+SCRAPE_INTERVAL_HOURS | Cron | Default: 6
+NODE_ENV | All | production / development
+
+--- TABLE 19 ---
+Risk | Likelihood | Mitigation
+PlanetBids blocks scraper IP | Medium | Add randomized delays (2–5s), rotate user agents, use residential proxy if needed
+Portal HTML structure changes | Medium | Monitor scraper error rate; alert on >20% parse failures; build fragile selector tests
+Anthropic API cost overrun | Low | Cache all AI analyses; only regenerate on user request; set monthly spend cap in Anthropic console
+Neon free tier storage limit | Low | Prune bids older than 90 days; raw_text field is largest — store only first 10KB
+Railway/Render cold start | Medium | Use paid plan ($5–7/mo) for always-on; or keep-alive ping every 14 min
+SAM.gov API rate limits | Low | API allows 10 req/sec; stagger requests; cache federal results for 6hrs
