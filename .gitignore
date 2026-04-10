@@ -22,3 +22,6 @@ yarn-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Large / Sensitive documentation folders
+StrongerBuilt Certification Documents-20260407T210104Z-3-001/
