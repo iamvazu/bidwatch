@@ -1,0 +1,10 @@
+{
+  "name": "bidwatch-root",
+  "version": "1.0.0",
+  "description": "BidWatch Monorepo Root",
+  "private": true,
+  "scripts": {
+    "start": "npm run start --prefix bidwatch-api",
+    "build": "npm run build --prefix bidwatch-api"
+  }
+}

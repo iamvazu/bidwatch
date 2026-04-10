@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/railwayapp/railway-json-schema/main/schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "watchPatterns": [
+      "bidwatch-api/**"
+    ]
+  },
+  "deploy": {
+    "startCommand": "cd bidwatch-api && npm install && npm run build && npm run start",
+    "healthcheckPath": "/health",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
