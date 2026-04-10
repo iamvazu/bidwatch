@@ -16,6 +16,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/', (req, res) => {
+  res.json({ status: 'active', service: 'BidWatch API' });
+});
+
 // Get all bids
 app.get('/api/bids', async (req, res) => {
   try {
@@ -53,6 +57,6 @@ app.get('/api/bids/:id/analysis', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0' as any, () => {
   console.log(`Server running on port ${port}`);
 });
